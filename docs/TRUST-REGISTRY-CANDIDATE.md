@@ -26,6 +26,10 @@ The first local source-build attempt reached the notice-install step but failed 
 
 Regression fixture: `ruby tests/notice_copy_test.rb` exercises the actual helper with a 0555 cache directory and 0444 source file. Passed on Linux Ruby 3.3.8 as unprivileged user; native Homebrew rerun is still required. Refresh the existing review tap's formula after pulling this fix; no new tap is needed.
 
+## Packaged toolchain notice paths
+
+The second install attempt reached the build but reported a generic "Missing or changed reviewed notice: LICENSE". That message did not identify the failing dependency. The candidate now checks all 18 notice sources before compilation and reports the exact module/version/relative path plus missing-file or expected/actual digest details. A Go toolchain notice may resolve through a symlink only within the real installed go@1.26 keg, and a missing root LICENSE/PATENTS may be found at that keg's root. The exact reviewed SHA-256 remains mandatory. A changed file never falls back to another copy. Module notice symlinks remain forbidden, and all resolved source paths must stay within their dependency root. No cache mutations. The original failure's precise location is not yet confirmed; retry is needed. No native Homebrew test was run for this change.
+
 ## Local candidate testing
 
 From a clone of this tap, with a separate unused review tap name (choose another if it already exists):
