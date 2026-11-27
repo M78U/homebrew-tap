@@ -58,13 +58,14 @@ class TrustRegistry < Formula
     ENV["GOPROXY"] = "off"
     before = lock_digests
     system go, "mod", "verify"
+    notices = reviewed_notice_sources(go)
     system go, "build", "-mod=readonly", "-trimpath", "-buildvcs=false",
            "-o", bin/"trust-registry", "./cmd/trust-registry"
     odie "Dependency locks changed during build" unless before == lock_digests
     verify_build_identity(go)
 
     pkgshare.install "LICENSE", "NOTICE.md", "THIRD-PARTY-NOTICES.md", "licenses"
-    install_reviewed_notices(go)
+    notices.each { |source, destination, sha| install_notice(source, destination, sha) }
   end
 
   # Verify actual linked module identities, not the larger go.mod graph.
@@ -93,7 +94,8 @@ class TrustRegistry < Formula
 
   # Exact reviewed bytes, not a license classifier. The Go vendor x/sys notices
   # are conservatively included on both architectures.
-  def install_reviewed_notices(go)
+  def reviewed_notice_sources(go)
+    notices = []
     modules = [
       ["github.com/emmansun/gmsm","v0.45.0","gmsm","LICENSE","32f582b4f6f130fdcf87e1dda6069c3cac57914408bcc1a289cff8635d32d837"],
       ["github.com/emmansun/gmsm","v0.45.0","gmsm","internal/sm9/bn256/LICENSE","b4d4d55e3fdc559101e018a8a218d94f4cadfac473a32953645545c23ef5672f"],
@@ -110,10 +112,12 @@ class TrustRegistry < Formula
         odie "Unexpected module identity" unless info["Path"] == mod && info["Version"] == version && !info["Replace"] && info["Dir"]
         Pathname.new(info["Dir"])
       end
-      install_notice(root/path, pkgshare/"reviewed-notices"/name/path, sha)
+      source = checked_notice(root/path, root, sha, "#{mod}@#{version}/#{path}")
+      notices << [source, pkgshare/"reviewed-notices"/name/path, sha]
     end
 
     goroot = Pathname.new(Utils.safe_popen_read(go, "env", "GOROOT").strip)
+    go_prefix = Formula["go@1.26"].opt_prefix.realpath
     [
       ["LICENSE","911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"],
       ["PATENTS","96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"],
@@ -127,8 +131,28 @@ class TrustRegistry < Formula
       ["src/vendor/golang.org/x/text/LICENSE","911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"],
       ["src/vendor/golang.org/x/text/PATENTS","96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"],
     ].each do |path, sha|
-      install_notice(goroot/path, pkgshare/"reviewed-notices/go-toolchain"/path, sha)
+      source = goroot/path
+      # Some packaged toolchains keep their root notices in the keg prefix.
+      # Only use that explicit alternative for absent root LICENSE/PATENTS.
+      if ["LICENSE", "PATENTS"].include?(path) && !source.exist? && !source.symlink?
+        alternative = go_prefix/path
+        source = alternative if alternative.exist? || alternative.symlink?
+      end
+      source = checked_notice(source, go_prefix, sha, "go1.26.11/#{path}", allow_symlink: true)
+      notices << [source, pkgshare/"reviewed-notices/go-toolchain"/path, sha]
     end
+    notices
+  end
+
+  def checked_notice(source, root, sha, label, allow_symlink: false)
+    odie "Missing reviewed notice: #{label} (#{source})" unless source.file?
+    odie "Unexpected notice symlink: #{label}" if source.symlink? && !allow_symlink
+    resolved = source.realpath
+    odie "Notice outside dependency root: #{label}" unless
+      resolved.to_s.start_with?(root.realpath.to_s + File::SEPARATOR)
+    actual = Digest::SHA256.file(resolved).hexdigest
+    odie "Changed reviewed notice: #{label} (expected #{sha}, got #{actual})" unless actual == sha
+    resolved
   end
 
   def install_notice(source, destination, sha)
