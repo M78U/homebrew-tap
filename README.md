@@ -6,9 +6,20 @@ Official Homebrew Tap for M78U Labs
 
 | Package | Status |
 | --- | --- |
-| Trust Registry CLI (Formula) | [Local acceptance candidate](docs/TRUST-REGISTRY-CANDIDATE.md); not yet installable from this tap |
+| [Trust Registry CLI](https://trust.m78u.com/) (Formula) | 0.1.0 Developer Preview — Apple Silicon macOS, source build |
 | SigLens CLI (Formula) | Pending reviewed public release |
 | SigLens macOS App (Cask) | Pending reviewed signed and notarized release |
+
+## Trust Registry CLI
+
+```sh
+brew tap m78u/tap
+brew install --build-from-source m78u/tap/trust-registry
+```
+
+The first formula supports Apple Silicon macOS only, builds tag `0.1.0` at its reviewed commit and requires Go 1.26.11. A newer Homebrew Go patch requires updated notice evidence before installation is allowed. No bottle, default trusted CA dataset, production trust anchors or TUF administration tools are included. Native Intel support is pending. See the [release acceptance record](docs/TRUST-REGISTRY-CANDIDATE.md) and [upstream release](https://github.com/M78U/trust-registry/releases/tag/0.1.0).
+
+## SigLens
 
 SigLens distribution will include native Apple Silicon and Intel builds. Once the actual package definitions are published, use:
 
