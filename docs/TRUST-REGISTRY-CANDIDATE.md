@@ -11,7 +11,7 @@ Scope: one macOS CLI, CGO disabled, Go 1.26.11 (exact reviewed patch), no TUF pu
 1. Confirm the release is published, and tag/revision still match. Never retag a released version for packaging.
 2. Package-level evidence received for both architectures, at the exact release and Go 1.26.11. See the review below. Recollect on toolchain or source changes.
 3. Complete source-header, embedded data and nested notice review. Candidate now installs the hash-pinned union of observed notices; source-level review is not complete. Do not move to Formula/ yet.
-4. Test the candidate using an isolated local review tap (not the official tap), on native Apple Silicon and native Intel macOS, with current Homebrew and the exact supported Go 1.26.x toolchain. Verify source-build fetch, offline install, lock preservation, `brew test`, installed notices and actual binary build metadata. Do not bypass Homebrew sandboxing, checksum validation or security settings.
+4. Test the candidate using an isolated local review tap (not the official tap), on native Apple Silicon and native Intel macOS, with current Homebrew and the exact supported Go 1.26.x toolchain. Verify source-build fetch, offline install, lock preservation, `brew test`, installed notices and actual binary build metadata. The candidate now checks the installed executable's Go build information before copying notices: expected toolchain, main package, Darwin architecture, CGO disabled, exact four external module paths, versions and Go module sums, and no replacement modules. Go build information is a local consistency check, not a signed attestation or a substitute for source review. Do not bypass Homebrew sandboxing, checksum validation or security settings.
 5. Once acceptance is recorded and owner approves, submit a separate PR moving the reviewed definition into Formula/ and updating the README to mark it available. No bottle at this stage.
 
 ## Observed notice evidence
@@ -31,6 +31,9 @@ mkdir -p "$review_tap/Formula"
 cp candidates/trust-registry.rb "$review_tap/Formula/trust-registry.rb"
 brew install --build-from-source m78u/trust-registry-review/trust-registry
 brew test m78u/trust-registry-review/trust-registry
+prefix="$(brew --prefix m78u/trust-registry-review/trust-registry)"
+"$(brew --prefix go@1.26)/bin/go" version -m "$prefix/bin/trust-registry"
+file "$prefix/bin/trust-registry"
 ```
 
 Run only in a trusted local review environment, not on a production workstation with a conflicting installed formula. Native Ruby syntax, Homebrew install and architecture tests have not been executed by this PR. Inspect all logs privately; do not publish evidence archives containing private paths. Clean up the temporary tap after testing as appropriate.

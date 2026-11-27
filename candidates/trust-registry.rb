@@ -60,9 +60,34 @@ class TrustRegistry < Formula
     system go, "build", "-mod=readonly", "-trimpath", "-buildvcs=false",
            "-o", bin/"trust-registry", "./cmd/trust-registry"
     odie "Dependency locks changed during build" unless before == lock_digests
+    verify_build_identity(go)
 
     pkgshare.install "LICENSE", "NOTICE.md", "THIRD-PARTY-NOTICES.md", "licenses"
     install_reviewed_notices(go)
+  end
+
+  # Verify actual linked module identities, not the larger go.mod graph.
+  def verify_build_identity(go)
+    info = JSON.parse(Utils.safe_popen_read(go, "version", "-m", "-json", bin/"trust-registry"))
+    arch = Hardware::CPU.arm? ? "arm64" : "amd64"
+    expected = {
+      "github.com/emmansun/gmsm" => ["v0.45.0", "h1:PU/6ObyR3g05YN3jn1L5GZDowzyAi8Xhkq4svzYNyiA="],
+      "github.com/santhosh-tekuri/jsonschema/v6" => ["v6.0.2", "h1:KRzFb2m7YtdldCEkzs6KqmJw4nqEVZGK7IN2kJkjTuQ="],
+      "golang.org/x/crypto" => ["v0.57.0", "h1:3ZVCjf8Ggz7zneR/EHRVx68Ctf+2pmIMP2UFhh9cC6M="],
+      "golang.org/x/text" => ["v0.42.0", "h1:JbOZXgfeCPU9gacVtYliJqOhD+zhrEqK4LfdpmlUZqI="],
+    }
+    odie "Unexpected binary toolchain or main package" unless
+      info["GoVersion"] == "go1.26.11" &&
+      info["Path"] == "github.com/M78U/trust-registry/cmd/trust-registry" &&
+      info.dig("Main", "Path") == "github.com/M78U/trust-registry" &&
+      !info.dig("Main", "Replace")
+    settings = info.fetch("Settings").to_h { |entry| [entry.fetch("Key"), entry.fetch("Value")] }
+    odie "Unexpected binary target or CGO configuration" unless
+      settings.values_at("GOOS", "GOARCH", "CGO_ENABLED") == ["darwin", arch, "0"]
+    deps = info.fetch("Deps")
+    odie "Unexpected binary dependencies" unless deps.length == expected.length &&
+      deps.all? { |dep| !dep["Replace"] } &&
+      deps.to_h { |dep| [dep.fetch("Path"), dep.values_at("Version", "Sum")] } == expected
   end
 
   # Exact reviewed bytes, not a license classifier. The Go vendor x/sys notices
