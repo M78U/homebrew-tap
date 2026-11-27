@@ -4,7 +4,7 @@ require "pathname"
 require "tmpdir"
 
 # Exercise the actual helper without loading Homebrew's formula DSL.
-formula = File.read(File.expand_path("../candidates/trust-registry.rb", __dir__))
+formula = File.read(File.expand_path("../Formula/trust-registry.rb", __dir__))
 helper = formula[/^  def install_notice\(source, destination, sha\)\n.*?^  end\n/m]
 abort "install_notice helper not found" unless helper
 klass = Class.new do

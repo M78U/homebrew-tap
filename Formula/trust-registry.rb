@@ -1,4 +1,4 @@
-# Local acceptance candidate only. Do not move to Formula/ before review.
+# Apple Silicon developer preview, source-build only; see release acceptance record.
 require "digest"
 require "fileutils"
 require "json"
@@ -14,6 +14,7 @@ class TrustRegistry < Formula
 
   depends_on "go@1.26" => :build
   depends_on :macos
+  depends_on arch: :arm64
 
   deny_network_access!
 
@@ -25,7 +26,7 @@ class TrustRegistry < Formula
     ENV["GOENV"] = "off"
     ENV["GOEXPERIMENT"] = ""
     ENV["GOOS"] = "darwin"
-    ENV["GOARCH"] = Hardware::CPU.arm? ? "arm64" : "amd64"
+    ENV["GOARCH"] = "arm64"
     ENV["GOPRIVATE"] = ""
     ENV["GONOSUMDB"] = ""
     ENV["GONOPROXY"] = ""
@@ -71,7 +72,7 @@ class TrustRegistry < Formula
   # Verify actual linked module identities, not the larger go.mod graph.
   def verify_build_identity(go)
     info = JSON.parse(Utils.safe_popen_read(go, "version", "-m", "-json", bin/"trust-registry"))
-    arch = Hardware::CPU.arm? ? "arm64" : "amd64"
+    arch = "arm64"
     expected = {
       "github.com/emmansun/gmsm" => ["v0.45.0", "h1:PU/6ObyR3g05YN3jn1L5GZDowzyAi8Xhkq4svzYNyiA="],
       "github.com/santhosh-tekuri/jsonschema/v6" => ["v6.0.2", "h1:KRzFb2m7YtdldCEkzs6KqmJw4nqEVZGK7IN2kJkjTuQ="],
@@ -93,7 +94,7 @@ class TrustRegistry < Formula
   end
 
   # Exact reviewed bytes, not a license classifier. The Go vendor x/sys notices
-  # are conservatively included on both architectures.
+  # are conservatively retained from the reviewed two-architecture inventory.
   def reviewed_notice_sources(go)
     notices = []
     modules = [
