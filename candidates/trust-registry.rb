@@ -1,5 +1,6 @@
 # Local acceptance candidate only. Do not move to Formula/ before review.
 require "digest"
+require "fileutils"
 require "json"
 
 class TrustRegistry < Formula
@@ -134,7 +135,10 @@ class TrustRegistry < Formula
     odie "Missing or changed reviewed notice: #{source.basename}" unless
       source.file? && !source.symlink? && Digest::SHA256.file(source).hexdigest == sha
     destination.dirname.mkpath
-    destination.dirname.install source => destination.basename.to_s
+    # Go module caches and the installed Go toolchain are read-only inputs.
+    FileUtils.copy_file(source, destination)
+    destination.chmod(0o644)
+    odie "Copied notice differs: #{destination.basename}" unless Digest::SHA256.file(destination).hexdigest == sha
   end
 
   test do

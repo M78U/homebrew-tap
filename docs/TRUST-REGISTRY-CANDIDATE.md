@@ -20,6 +20,12 @@ Operator's two local inventories report revision 0477dd115adb86f32b6b3ac41a8018b
 
 Both inventories report MANUAL_REVIEW at src/internal/copyright (a name matching the collector's notice pattern, not a regular notice file). Inspect the actual directory contents and selected source headers, and review embedded assets and notices not captured by the collector before approving distribution. No automatic license clearance. The archive is operator evidence, not an independently authenticated upstream source archive; build-time SHA-256 checks compare actual source bytes.
 
+## Read-only dependency notice installation
+
+The first local source-build attempt reached the notice-install step but failed with EACCES because Homebrew's Pathname#install attempted to rename a file out of the read-only Go module cache. The helper now copies reviewed notice bytes, sets the installed copy's permissions to 0644, and verifies the installed SHA-256. Neither cache nor toolchain files are moved or chmodded. Do not use sudo, chmod the cache, or disable sandboxing.
+
+Regression fixture: `ruby tests/notice_copy_test.rb` exercises the actual helper with a 0555 cache directory and 0444 source file. Passed on Linux Ruby 3.3.8 as unprivileged user; native Homebrew rerun is still required. Refresh the existing review tap's formula after pulling this fix; no new tap is needed.
+
 ## Local candidate testing
 
 From a clone of this tap, with a separate unused review tap name (choose another if it already exists):
