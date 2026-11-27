@@ -6,6 +6,7 @@ Official Homebrew Tap for M78U Labs
 
 | Package | Status |
 | --- | --- |
+| Trust Registry CLI (Formula) | [Local acceptance candidate](docs/TRUST-REGISTRY-CANDIDATE.md); not yet installable from this tap |
 | SigLens CLI (Formula) | Pending reviewed public release |
 | SigLens macOS App (Cask) | Pending reviewed signed and notarized release |
 
