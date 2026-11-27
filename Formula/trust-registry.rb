@@ -2,14 +2,15 @@
 require "digest"
 require "fileutils"
 require "json"
+require "shellwords"
 
 class TrustRegistry < Formula
   desc "Independent PKI certificate research and trust registry toolkit"
   homepage "https://trust.m78u.com/"
   url "https://github.com/M78U/trust-registry.git",
-      tag: "0.1.0",
-      revision: "0477dd115adb86f32b6b3ac41a8018bf4b087ade"
-  version "0.1.0"
+      tag: "v0.2.0-preview.1",
+      revision: "45cc3aad74d93ade0fbfde44996e5f44739deb6d"
+  version "0.2.0-preview.1"
   license all_of: ["MIT", "Apache-2.0", "BSD-3-Clause"]
 
   depends_on "go@1.26" => :build
@@ -169,6 +170,12 @@ class TrustRegistry < Formula
   test do
     system bin/"trust-registry", "init", "--registry", testpath/"empty"
     system bin/"trust-registry", "validate", "--registry", testpath/"empty"
+    coverage = JSON.parse(shell_output("#{bin}/trust-registry sources acquisition-coverage --registry #{(testpath/"empty").to_s.shellescape}"))
+    assert_equal "NOT_ESTABLISHED", coverage.fetch("trustStatus")
+    assert_equal false, coverage.fetch("releaseAuthenticated")
+    assert_equal 0, coverage.fetch("counts").fetch("matchingInventoryRows")
+    assert_equal 0, coverage.fetch("inventory").fetch("certificates")
+    refute coverage.key?("archiveCoverage")
     assert_predicate pkgshare/"LICENSE", :file?
     assert_predicate pkgshare/"THIRD-PARTY-NOTICES.md", :file?
     assert_predicate pkgshare/"reviewed-notices/go-toolchain/LICENSE", :file?

@@ -58,3 +58,24 @@ file "$prefix/bin/trust-registry"
 ```
 
 Run only in a trusted local review environment, not on a production workstation with a conflicting installed formula. Native Homebrew test for the newly registered formula path and native Intel tests have not been executed by this PR. Inspect all logs privately; do not publish evidence archives containing private paths. Clean up the temporary tap after testing as appropriate.
+
+
+## v0.2.0-preview.1 package upgrade candidate — 2026-11-27
+
+The owner reported publishing the upstream source-only preview, and the exact tag was checked against commit `45cc3aad74d93ade0fbfde44996e5f44739deb6d`. The owner supplied a clean locked developer validation report for that commit (Go 1.26.11, Darwin ARM64), with registry and isolated TUF tests/builds, CLI smoke and Explorer checks passing. Release metadata is owner-reported, not independently retrieved. This new formula packages only the Registry CLI and retains the prior source-build/ARM64 restrictions.
+
+The uploaded local evidence archive `trust-v02-preview-license-arm64.tar.gz` reports the exact same revision, GOOS=darwin, GOARCH=arm64, GOVERSION=go1.26.11, CGO_ENABLED=0 and target ./cmd/trust-registry. Its two lock SHA-256 values match the existing formula; the upstream four tracked Go lock blobs are unchanged relative to 0.1.0. All 15 referenced notice files (37,508 bytes) were independently rehashed and length-checked against the inventory and existing formula's path-specific digest values. Four external module identities and versions remain the same. The evidence is a selected-package inventory, not actual linked-binary metadata or an independent source authenticity attestation. The existing strict build identity checks remain mandatory.
+
+The new evidence does not include the Go root LICENSE or vendored x/sys LICENSE/PATENTS. Keep those three additional conservative requirements from the earlier reviewed formula, with the same digest checks at build/install time. Do not remove the existing fallback for a packaged Go root notice. The collector still reports MANUAL_REVIEW for src/internal/copyright; inspect that directory and source-level/embedded materials. The inventory explicitly says licenseReviewComplete=false and distributionAuthorized=false. The archive is private evidence, not a grant of redistribution permission; no archive contents committed. The native candidate install, brew test, and installed notices must still be accepted by the owner before merging (or record a narrowly scoped explicit test-runner exception if the previous runner issue persists). No bottle, Intel package or production CA data.
+
+### Test the exact candidate before merge
+
+Review the changes and use a clean dedicated Mac review environment. The existing review-tap instructions above apply, but use this PR's candidate Formula and a separate unused tap name (for example m78u/trust-registry-v02-review). Do not overwrite a working production tap or install conflicting formula names without reviewing the local installation state. Run the native source build and test, then confirm the new acquisition-coverage command directly in a fresh temporary inventory:
+
+```sh
+scratch="$(mktemp -d)"
+trust-registry init --registry "$scratch/registry"
+trust-registry sources acquisition-coverage --registry "$scratch/registry"
+```
+
+Check the tested executable's exact path, Go build metadata and version via brew list/info; require zero candidates and no trust authentication. Confirm all 18 installed reviewed-notice files; the candidate test retains the old init/validate checks and adds offline acquisition coverage assertions. No actual CA network acquisition in the package test. Only merge after review and native acceptance or an explicitly documented narrow test-runner exception. On the official tap after merge, run brew update and brew upgrade --build-from-source m78u/tap/trust-registry, then repeat the smoke checks against the registered package. The original release tag is immutable.
